@@ -1,0 +1,28 @@
+\documentclass[a4paper]{article}
+\usepackage[latin1]{inputenc}
+\begin{document}
+
+% MySQL connection is also available in subfiles.
+% Does not need to be respecified unless you want switch connections between multiple databases.
+!!mysqlcon{server=127.0.0.1; port=3306; database=<db>; uid=<user>; Pwd=<password>;}
+
+!!mysqlexecute{CALL PrepareDatabase();}  % We ignore or don't exoect any result
+
+% We save a single / first result into the ArmiTex variable !!version
+!!mysqlsingle{!!version}{SELECT VERSION() AS Version;}
+Connected to MySQL !!version.Version.  % We access result columns via dots. Trailing EOL dots are not an issue.
+
+% We expect multiple results and store them in the ArmiTex variable !!cars
+!!mysqlquery{!!cars}{SELECT Id, Name, Manufacturer FROM cars;}
+
+% We iterate through the !!cars variable storing the single result in !!car
+!!mysqlforeach{!!cars|!!car}{
+\textbf{!!car.Name \label{!!car.Id}}
+% Multilines and comments are supported.
+Manufacturer: !!car.Manufacturer
+}
+
+% Please note that any previously declared connections or ArmiTex variables are available in included files.
+% \include{whatever} 
+
+\end{document}
