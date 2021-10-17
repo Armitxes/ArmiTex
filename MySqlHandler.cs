@@ -69,13 +69,15 @@ namespace ArmiTex {
 			Console.WriteLine("MySQL Connection: " + ConnectionString);
 		}
 
-		public static void CmdMySqlQuery(StreamReader reader, bool single = false)
+		public static void CmdMySqlQuery(TexFile file, StreamReader reader, bool single = false)
 		{
 			int idx;
 
 			string texVariable = "";
+			string subVariable = "";
 			string query = "";
 			bool isQuery = false;
+			bool isSubVariable = false;
 
 			while ((idx = reader.Read()) != -1)
 			{
@@ -92,11 +94,32 @@ namespace ArmiTex {
 				}
 
 				if (isQuery)
-					query += c;
-				else
-					texVariable += c;
-			}
+				{
+					if (c == '!' && query.Length > 0 && query[^1..] == "!")
+					{
+						query = query[..^1];
+						subVariable = "";
+						isSubVariable = true;
+						continue;
+					}
 
+					if (isSubVariable)
+					{
+						if (!Char.IsLetterOrDigit(c) && c != '.')
+						{
+							isSubVariable = false;
+							query += file.HandleArmiVariable(subVariable);
+						} else {
+							subVariable += c;
+							continue;
+						}
+					}
+
+					query += c;
+					continue;
+				}
+				texVariable += c;
+			}
 			Console.WriteLine(texVariable + " <- " + query);
 			List<Dictionary<string, object>> results = Query(query);
 
@@ -108,7 +131,7 @@ namespace ArmiTex {
 			}
 
 			Console.WriteLine(texVariable + " -> " + "Query with " + results.Count + " result(s).");
-			ProgramArgs.TexVars.Add(texVariable, results);
+			ProgramArgs.TexVars[texVariable] = results;
 		}
 
 		public static void CmdMySqlExecute(StreamReader reader)

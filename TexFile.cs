@@ -246,14 +246,14 @@ namespace ArmiTex {
 					if (armiCommand == "mysqlcon")
 						MySqlHandler.CmdMySqlCon(reader);
 					else if (armiCommand == "mysqlsingle")
-						MySqlHandler.CmdMySqlQuery(reader, true);
+						MySqlHandler.CmdMySqlQuery(this, reader, true);
 					else if (armiCommand == "mysqlquery")
-						MySqlHandler.CmdMySqlQuery(reader);
+						MySqlHandler.CmdMySqlQuery(this, reader);
 					else if (armiCommand == "mysqlexecute")
 						MySqlHandler.CmdMySqlExecute(reader);
 					else if (armiCommand == "mysqlforeach")
 						MySqlHandler.CmdMySqlForeach(reader, writer);
-					else if (HandleArmiVariable(reader, writer, armiCommand))
+					else if (HandleArmiVariable(writer, armiCommand))
 						Buffer += skipped;
 					else
 						Console.WriteLine("Unknown command: " + armiCommand);
@@ -267,7 +267,8 @@ namespace ArmiTex {
 			return false;
 		}
 
-		private bool HandleArmiVariable(StreamReader reader, StreamWriter writer, string varName)
+
+		public string HandleArmiVariable(string varName)
 		{
 			if (!varName.Contains("!!"))
 				varName = "!!" + varName;
@@ -286,37 +287,36 @@ namespace ArmiTex {
 
 			bool isVarReal = ProgramArgs.TexVars.ContainsKey(varName);
 			if (!isVarReal)
-				return HandleArmiVariable(
-					writer,
+				return HandleArmiVariableException(
 					"<" + varName + " is not defined>" + suffix
 				);
 
 			bool isValidVarType = ProgramArgs.TexVars[varName].GetType() == typeof(Dictionary<string, object>);
 			if (!isValidVarType)
-				return HandleArmiVariable(
-					writer,
+				return HandleArmiVariableException(
 					"<Variable \"" + varName + "\" is an iterable type>" + suffix
 				);
 
 			Dictionary<string, object> variable = ProgramArgs.TexVars[varName];
 			if (!variable.ContainsKey(subProp))
-				return HandleArmiVariable(
-					writer,
+				return HandleArmiVariableException(
 					"<Variable \"" + varName + "\" has no property \"" + subProp + "\">" + suffix
 				);
 
-			Buffer = variable[subProp].ToString() + suffix;
+			return variable[subProp].ToString() + suffix;
+		}
+
+		public bool HandleArmiVariable(StreamWriter writer, string varName)
+		{
+			Buffer = HandleArmiVariable(varName);
 			WriteBuffer(writer);
 			return true;
 		}
 
-		private bool HandleArmiVariable(StreamWriter writer, string message)
+		private string HandleArmiVariableException(string message)
 		{
-			Buffer += message;
 			Console.WriteLine(message);
-			WriteBuffer(writer);
-			return false;
+			return message;
 		}
-
 	}
 }
